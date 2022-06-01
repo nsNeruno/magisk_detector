@@ -32,7 +32,7 @@ MagiskDetector().detectMagisk().then(
     /// Do something  
   },
 );
-final isMagickFound = await MagiskDetector().detectMagisk();
+final isMagiskFound = await MagiskDetector().detectMagisk();
 if (isMagiskFound) {
   /// Do something
 }
