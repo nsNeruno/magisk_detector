@@ -28,12 +28,12 @@ import 'package:magisk_detector/magisk_detector.dart';
 Straightforward usage.
 ```dart
 MagiskDetector().detectMagisk().then(
-  (isMagickFound) {
+  (isMagiskFound) {
     /// Do something  
   },
 );
 final isMagickFound = await MagiskDetector().detectMagisk();
-if (isMagickFound) {
+if (isMagiskFound) {
   /// Do something
 }
 ```
