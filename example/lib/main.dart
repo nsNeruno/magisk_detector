@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:magisk_detector/magisk_detector.dart';
 
@@ -12,7 +13,7 @@ class MagiskDetectionDemoApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Magisk Detection Demo',
       theme: ThemeData(
         // This is the theme of your application.
         //
@@ -43,8 +44,18 @@ class MagiskDetectionDemoPage extends StatelessWidget {
       ),
       body: Center(
         child: FutureBuilder<bool>(
-          future: MagiskDetector().detectMagisk(),
+          future: MagiskDetector.instance.detectMagisk(),
           builder: (_, snapshot,) {
+            final error = snapshot.error;
+            if (error is Error) {
+              if (kDebugMode) {
+                print(error.stackTrace,);
+              }
+              return Text(
+                error.toString(),
+                textAlign: TextAlign.center,
+              );
+            }
             final isMagiskDetected = snapshot.data;
             if (isMagiskDetected == null) {
               return const SizedBox.shrink();
