@@ -1,5 +1,5 @@
 name: magisk_detector
-description: Magisk Detector for Android in Pure Dart.
+description: Flutter Support for integrating Magisk Detector for Android Application.
 version: 0.0.1
 homepage: https://github.com/nsNeruno/magisk_detector
 
@@ -22,6 +22,11 @@ dev_dependencies:
 # The following section is specific to Flutter.
 flutter:
 
+  plugin:
+    platforms:
+      android:
+        package: lab.neruno.magisk_detector
+        pluginClass: MagiskDetectorPlugin
   # To add assets to your package, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg
