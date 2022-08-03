@@ -71,6 +71,10 @@ MagiskDetector.instance.isRestartRequired();
 MagiskDetector.instance.enforceRestartRequirement = false
 ```
 
+## Known Issue
+The restart requirement will most likely encounter problem starting on Android 11 and above, due to the crashes caused by EncryptedSharedPreference class provided by androidx.crypto dependency.  
+Because of that, the Props Hash check section will defaults to passed status for now.
+
 ## Additional information
 
 Further references and tests are required. Feel free to raise an [issue](https://github.com/nsNeruno/magisk_detector/issues).
