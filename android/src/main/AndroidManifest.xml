@@ -1,0 +1,12 @@
+<manifest
+    package="lab.neruno.magisk_detector"
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools" >
+
+    <application
+        android:allowBackup="false"
+        android:extractNativeLibs="true"
+        android:zygotePreloadName="lab.neruno.magisk_detector.AppZygote"
+        tools:targetApi="q"
+        />
+</manifest>

@@ -30,5 +30,10 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+
+       <service
+           android:name="lab.neruno.magisk_detector.RemoteService"
+           android:isolatedProcess="true"
+           android:useAppZygote="true" />
     </application>
 </manifest>
