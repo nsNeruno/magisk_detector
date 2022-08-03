@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:magisk_detector/magisk_detector.dart';
 
 void main() {
+  MagiskDetector.instance.enforceRestartRequirement = false;
   runApp(const MagiskDetectionDemoApp());
 }
 
@@ -43,28 +44,34 @@ class MagiskDetectionDemoPage extends StatelessWidget {
         title: const Text("Magisk Detection Demo",),
       ),
       body: Center(
-        child: FutureBuilder<bool>(
-          future: MagiskDetector.instance.detectMagisk(),
-          builder: (_, snapshot,) {
-            final error = snapshot.error;
-            if (error is Error) {
-              if (kDebugMode) {
-                print(error.stackTrace,);
+        child: DefaultTextStyle(
+          style: const TextStyle(
+            fontSize: 16.0,
+            color: Colors.black,
+          ),
+          child: FutureBuilder<bool>(
+            future: MagiskDetector.instance.detectMagisk(),
+            builder: (_, snapshot,) {
+              final error = snapshot.error;
+              if (error is Error) {
+                if (kDebugMode) {
+                  print(error.stackTrace,);
+                }
+                return Text(
+                  error.toString(),
+                  textAlign: TextAlign.center,
+                );
+              }
+              final isMagiskDetected = snapshot.data;
+              if (isMagiskDetected == null) {
+                return const SizedBox.shrink();
               }
               return Text(
-                error.toString(),
+                "Magisk Detected:\n$isMagiskDetected",
                 textAlign: TextAlign.center,
               );
-            }
-            final isMagiskDetected = snapshot.data;
-            if (isMagiskDetected == null) {
-              return const SizedBox.shrink();
-            }
-            return Text(
-              "Magisk Detected:\n$isMagiskDetected",
-              textAlign: TextAlign.center,
-            );
-          },
+            },
+          ),
         ),
       ),
     );

@@ -1,8 +1,10 @@
 import 'dart:developer';
 
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:magisk_detector/magisk_detector.dart';
+import 'package:secure_shared_preferences/secure_shared_pref.dart';
 
 class MagiskDetectorPlatform extends MagiskDetector {
 
@@ -120,9 +122,89 @@ class MagiskDetectorPlatform extends MagiskDetector {
     );
   }
 
-  Future<int?> _getProps() async {
-    var props = await _channel.invokeMethod("props",);
-    return props is int ? props : null;
+  Future<String?> _getBootId() => _channel.invokeMethod("getBootId",);
+
+  Future<String?> _getPropsHash() => _channel.invokeMethod("getPropsHash",);
+  
+  Future<int> _getProps() async {
+    final sp = await SecureSharedPref.getInstance();
+    final androidInfo = await DeviceInfoPlugin().androidInfo;
+    if ((androidInfo.version.sdkInt ?? 16) < 30) {
+      // TODO: Handle Android 11 and above
+      if (kDebugMode) {
+        print("Props Hash currently not supported on Android 11 and above",);
+      }
+      return 0;
+    }
+    var fingerprint = androidInfo.fingerprint;
+    var spFingerprint = await sp.getString("fingerprint", isEncrypted: true,) ?? "";
+    assert(
+      () {
+        log(
+          "spFingerprint=$spFingerprint \n  fingerprint=$fingerprint",
+          name: "MagiskDetector",
+        );
+        return true;
+      }(),
+    );
+    var spBootId = await sp.getString("boot_id", isEncrypted: true,) ?? "";
+    var bootId = await _getBootId();
+    assert(
+      () {
+        log(
+          "spBootId=$spBootId \n  bootId=$bootId",
+          name: "MagiskDetector"
+        );
+        return true;
+      }(),
+    );
+    var spPropsHash = await sp.getString("props_hash", isEncrypted: true,) ?? "";
+    if (spFingerprint == fingerprint && spBootId.isNotEmpty && spPropsHash.isNotEmpty) {
+      if (spBootId != bootId) {
+        var propsHash = await _getPropsHash();
+        return spPropsHash == propsHash ? 0 : 1;
+      } else {
+        return 2;
+      }
+    } else {
+      sp.putString(
+        "fingerprint",
+        fingerprint ?? "",
+      );
+      sp.putString(
+        "boot_id",
+        bootId ?? "",
+      );
+      var propsHash = await _getPropsHash();
+      sp.putString(
+        "props_hash",
+        propsHash ?? "",
+      );
+      assert(
+        () {
+          if (fingerprint?.isNotEmpty != true) {
+            log(
+              "Fingerprint is missing",
+              name: "MagiskDetector.Props",
+            );
+          }
+          if (bootId?.isNotEmpty != true) {
+            log(
+              "Boot ID is missing",
+              name: "MagiskDetector.Props",
+            );
+          }
+          if (propsHash == null) {
+            log(
+              "Hash is missing",
+              name: "MagiskDetector.Props",
+            );
+          }
+          return true;
+        }(),
+      );
+      return 2;
+    }
   }
 
   @override
@@ -155,13 +237,6 @@ class MagiskDetectorPlatform extends MagiskDetector {
   @override
   Future<bool> isRestartRequired() async {
     var props = await _getProps();
-    if (props == null) {
-      throw PlatformException(
-        code: _errorCode,
-        message: "Missing Props check result",
-        details: props,
-      );
-    }
     return props == 2;
   }
 
@@ -176,7 +251,26 @@ class MagiskDetectorPlatform extends MagiskDetector {
     ],
     eagerError: true,
   ).then(
-    (checkResults) => checkResults.contains(true,),
+    (checkResults) {
+      if (kDebugMode) {
+        print(
+          {
+            "haveSu": checkResults[0],
+            "haveMagicMount": checkResults[1],
+            "haveMagiskDSocket": checkResults[2],
+            "isIoctlModified": checkResults[3],
+            "propsCheck": checkResults[4],
+          },
+        );
+      }
+      return checkResults.contains(true,);
+    },
+  ).catchError(
+    (err) {
+      if (kDebugMode) {
+        print("detectMagisk.error: $err",);
+      }
+    },
   );
 
   static const _errorCode = "MAGISK_ERROR";

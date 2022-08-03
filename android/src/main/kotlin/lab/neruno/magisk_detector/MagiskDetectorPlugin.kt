@@ -3,14 +3,10 @@ package lab.neruno.magisk_detector
 import android.app.Activity
 import android.content.ComponentName
 import android.content.ServiceConnection
-import android.content.SharedPreferences
-import android.os.Build
 import android.os.IBinder
 import android.os.SystemClock
 import android.util.Log
 import androidx.annotation.NonNull
-import androidx.security.crypto.EncryptedSharedPreferences
-import androidx.security.crypto.MasterKey
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityAware
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
@@ -18,9 +14,12 @@ import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
-import java.io.*
+import java.io.BufferedReader
+import java.io.FileInputStream
+import java.io.IOException
+import java.io.InputStreamReader
+import java.io.Reader
 import java.nio.charset.StandardCharsets
-import java.security.GeneralSecurityException
 
 /** MagiskDetectorPlugin */
 class MagiskDetectorPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
@@ -73,8 +72,14 @@ class MagiskDetectorPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
       "testIoctl" -> {
         result.success(Native.testIoctl())
       }
-      "props" -> {
-        result.success(props())
+      "getPropsHash" -> {
+        result.success(Native.getPropsHash())
+      }
+//      "props" -> {
+//        result.success(props())
+//      }
+      "getBootId" -> {
+        result.success(getBootId())
       }
       else -> {
         result.notImplemented()
@@ -176,50 +181,50 @@ class MagiskDetectorPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
     activity = null
   }
 
-  private fun props(): Int? {
-    val activity = this.activity ?: return null
-    val sp: SharedPreferences
-    try {
-      val masterKey = MasterKey.Builder(activity)
-        .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-        .build()
-      sp = EncryptedSharedPreferences.create(
-        activity,
-        activity.packageName,
-        masterKey,
-        EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-        EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-      )
-    } catch (e: GeneralSecurityException) {
-      Log.e(tag, "Unable to open SharedPreferences.", e)
-      return -1
-    } catch (e: IOException) {
-      Log.e(tag, "Unable to open SharedPreferences.", e)
-      return -1
-    }
-    val spFingerprint = sp.getString("fingerprint", "") ?: ""
-    val fingerprint = Build.FINGERPRINT
-    Log.i(
-      tag,
-      "spFingerprint=$spFingerprint \n  fingerprint=$fingerprint"
-    )
-    val spBootId = sp.getString("boot_id", "") ?: ""
-    val bootId = getBootId()
-    Log.i(tag, "spBootId=$spBootId \n  bootId=$bootId")
-    val spPropsHash = sp.getString("props_hash", "") ?: ""
-    return if (spFingerprint == fingerprint && spBootId.isNotEmpty() && spPropsHash.isNotEmpty()) {
-      if (spBootId != bootId) {
-        if (spPropsHash == Native.getPropsHash()) 0 else 1
-      } else 2
-    } else {
-      val editor = sp.edit()
-      editor.putString("fingerprint", fingerprint)
-      editor.putString("boot_id", bootId)
-      editor.putString("props_hash", Native.getPropsHash())
-      editor.apply()
-      2
-    }
-  }
+//  private fun props(): Int? {
+//    val activity = this.activity ?: return null
+//    val sp: SharedPreferences
+//    try {
+//      val masterKey = MasterKey.Builder(activity)
+//        .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+//        .build()
+//      sp = EncryptedSharedPreferences.create(
+//        activity,
+//        activity.packageName,
+//        masterKey,
+//        EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+//        EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+//      )
+//    } catch (e: GeneralSecurityException) {
+//      Log.e(tag, "Unable to open SharedPreferences.", e)
+//      return -1
+//    } catch (e: IOException) {
+//      Log.e(tag, "Unable to open SharedPreferences.", e)
+//      return -1
+//    }
+//    val spFingerprint = sp.getString("fingerprint", "") ?: ""
+//    val fingerprint = Build.FINGERPRINT
+//    Log.i(
+//      tag,
+//      "spFingerprint=$spFingerprint \n  fingerprint=$fingerprint"
+//    )
+//    val spBootId = sp.getString("boot_id", "") ?: ""
+//    val bootId = getBootId()
+//    Log.i(tag, "spBootId=$spBootId \n  bootId=$bootId")
+//    val spPropsHash = sp.getString("props_hash", "") ?: ""
+//    return if (spFingerprint == fingerprint && spBootId.isNotEmpty() && spPropsHash.isNotEmpty()) {
+//      if (spBootId != bootId) {
+//        if (spPropsHash == Native.getPropsHash()) 0 else 1
+//      } else 2
+//    } else {
+//      val editor = sp.edit()
+//      editor.putString("fingerprint", fingerprint)
+//      editor.putString("boot_id", bootId)
+//      editor.putString("props_hash", Native.getPropsHash())
+//      editor.apply()
+//      2
+//    }
+//  }
 
   private fun getBootId(): String {
     var bootId = ""
