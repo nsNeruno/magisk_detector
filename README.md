@@ -21,14 +21,18 @@ On your app's `build.gradle` file, add this line under `android` group, where yo
 android {
     compileSdkVersion 30
     // You need to have this version installed on your SDK Manager
-    ndkVersion '21.3.6528147'
+    ndkVersion '25.0.8775105'
     // ...
 }
 ```
 Then on your AndroidManifest.xml (under android/app/src/main/), add this inside the <application> tag:
 ```xml
 <manifest ...>
-    <application ...>
+    <!-- Add these 3 properties to your application tag -->
+    <application ...
+        android:extractNativeLibs="true"
+        android:zygotePreloadName="lab.neruno.magisk_detector.AppZygote"
+        tools:targetApi="q" >
         <!-- Your application manifest data here -->
     
         <!-- Add this to connect to Magisk Detector Remote Service -->
@@ -58,22 +62,10 @@ final isMagiskFound = await MagiskDetector.instance.detectMagisk();
 if (isMagiskFound) {
   /// Do something
 }
-
-// Additional APIs
-// On some devices, you might encounter Exceptions where a restart 
-// is asked by the Detector. Before calling the detect command,
-// you may check is a RESTART is required
-
-// Returns Future<bool>
-MagiskDetector.instance.isRestartRequired();
-
-// And if you opt out from strict restart check
-MagiskDetector.instance.enforceRestartRequirement = false
 ```
 
 ## Known Issue
-The restart requirement will most likely encounter problem starting on Android 11 and above, due to the crashes caused by EncryptedSharedPreference class provided by androidx.crypto dependency.  
-Because of that, the Props Hash check section will defaults to passed status for now.
+This API most likely doesn't work against latest __**DenyList**__ feature of **MagiskHide**.
 
 ## Additional information
 
