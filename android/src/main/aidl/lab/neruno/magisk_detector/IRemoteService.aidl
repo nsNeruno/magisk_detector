@@ -1,5 +1,7 @@
 package lab.neruno.magisk_detector;
 
 interface IRemoteService {
-    boolean haveSu();
+    int haveSu();
+		int haveMagiskHide();
+		int haveMagicMount();
 }

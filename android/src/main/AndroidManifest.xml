@@ -5,8 +5,10 @@
 
     <application
         android:allowBackup="false"
-        android:extractNativeLibs="true"
+        android:supportsRtl="true"
         android:zygotePreloadName="lab.neruno.magisk_detector.AppZygote"
-        tools:targetApi="q"
-        />
+        tools:ignore="AllowBackup,MissingApplicationIcon"
+        tools:targetApi="q">
+
+    </application>
 </manifest>

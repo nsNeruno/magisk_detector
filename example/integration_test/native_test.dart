@@ -9,33 +9,21 @@ void main() {
   group(
     "Magisk Detector Test",
     () {
-      final detector = MagiskDetector.instance
-        ..enforceRestartRequirement = false;
+      final detector = MagiskDetector.instance;
 
       testWidgets(
         "Native Test",
         (tester) async {
-          bool? restartRequired;
+
+          bool? isMagiskDetected;
           try {
-            restartRequired = await detector.isRestartRequired();
+            isMagiskDetected = await detector.detectMagisk();
           } catch (err) {
             if (kDebugMode) {
               print(err,);
             }
           }
-          expect(restartRequired != null, true,);
-
-          if (restartRequired != true || !detector.enforceRestartRequirement) {
-            bool? isMagiskDetected;
-            try {
-              isMagiskDetected = await detector.detectMagisk();
-            } catch (err) {
-              if (kDebugMode) {
-                print(err,);
-              }
-            }
-            expect(isMagiskDetected != null, true,);
-          }
+          expect(isMagiskDetected != null, true,);
         },
       );
     },

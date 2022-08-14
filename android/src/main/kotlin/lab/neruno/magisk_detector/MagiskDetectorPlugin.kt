@@ -2,47 +2,59 @@ package lab.neruno.magisk_detector
 
 import android.app.Activity
 import android.content.ComponentName
+import android.content.Context
+import android.content.Intent
 import android.content.ServiceConnection
 import android.os.IBinder
-import android.os.SystemClock
+import android.os.RemoteException
 import android.util.Log
 import androidx.annotation.NonNull
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.LifecycleOwner
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityAware
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
+import io.flutter.embedding.engine.plugins.lifecycle.FlutterLifecycleAdapter
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
-import java.io.BufferedReader
-import java.io.FileInputStream
-import java.io.IOException
-import java.io.InputStreamReader
-import java.io.Reader
-import java.nio.charset.StandardCharsets
 
 /** MagiskDetectorPlugin */
-class MagiskDetectorPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
+class MagiskDetectorPlugin: FlutterPlugin, MethodCallHandler, ActivityAware, LifecycleEventObserver {
 
   private val tag = "MagiskDetector"
 
-  @Suppress("unused")
+  private var su: Int? = null
+  private var magicMount: Int? = null
+  private var magiskHide: Int? = null
+
+  private var binding: ActivityPluginBinding? = null
+
   private val connection: ServiceConnection = object : ServiceConnection {
     override fun onServiceConnected(name: ComponentName, binder: IBinder) {
-//      val service: IRemoteService = IRemoteService.Stub.asInterface(binder)
-//      try {
-//        setCard1(service.haveSu())
-//      } catch (e: RemoteException) {
-//        Log.e(tag, "RemoteException", e)
-//      }
+      val service: IRemoteService = IRemoteService.Stub.asInterface(binder)
+      try {
+        su = service.haveSu()
+        magicMount = service.haveMagicMount()
+        magiskHide = service.haveMagiskHide()
+      } catch (e: RemoteException) {
+        Log.e(tag, "RemoteException", e)
+        channel.invokeMethod(
+          "onServiceRemoteException",
+          mapOf("message" to e.message),
+          null
+        )
+      }
     }
 
     override fun onServiceDisconnected(name: ComponentName) {
-//      binding.textView.setText(R.string.error)
+      channel.invokeMethod("onServiceDisconnected", null, null)
     }
 
     override fun onNullBinding(name: ComponentName) {
-//      setError()
+      channel.invokeMethod("onNullBinding", null, null)
     }
   }
 
@@ -61,25 +73,13 @@ class MagiskDetectorPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
   override fun onMethodCall(@NonNull call: MethodCall, @NonNull result: Result) {
     when (call.method) {
       "haveSu" -> {
-        result.success(Native.haveSu())
+        result.success(su)
       }
       "haveMagicMount" -> {
-        result.success(Native.haveMagicMount())
+        result.success(magicMount)
       }
-      "findMagiskdSocket" -> {
-        result.success(Native.findMagiskdSocket())
-      }
-      "testIoctl" -> {
-        result.success(Native.testIoctl())
-      }
-      "getPropsHash" -> {
-        result.success(Native.getPropsHash())
-      }
-//      "props" -> {
-//        result.success(props())
-//      }
-      "getBootId" -> {
-        result.success(getBootId())
+      "haveMagiskHide" -> {
+        result.success(magiskHide)
       }
       else -> {
         result.notImplemented()
@@ -89,6 +89,22 @@ class MagiskDetectorPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
 
   override fun onDetachedFromEngine(@NonNull binding: FlutterPlugin.FlutterPluginBinding) {
     channel.setMethodCallHandler(null)
+  }
+
+  private fun onActivityObtained(activity: Activity) {
+//    val appContext = activity.applicationContext
+    val intent = Intent(activity, RemoteService::class.java)
+//    val intent = Intent("lab.neruno.magisk_detector.RemoteService").apply {
+//      `package` = activity.packageName
+//    }
+    try {
+      val isServiceBound = activity.bindService(intent, connection, Context.BIND_AUTO_CREATE)
+      if (!isServiceBound) {
+        channel.invokeMethod("onAppHackedError", null, null)
+      }
+    } catch (ex: Exception) {
+      Log.e(this.javaClass.name, ex.message ?: ex.javaClass.name)
+    }
   }
 
   /**
@@ -114,7 +130,9 @@ class MagiskDetectorPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
    * invoke any further methods on the binding or its resources.
    */
   override fun onAttachedToActivity(binding: ActivityPluginBinding) {
+    this.binding = binding
     activity = binding.activity
+    FlutterLifecycleAdapter.getActivityLifecycle(binding).addObserver(this)
   }
 
   /**
@@ -137,7 +155,12 @@ class MagiskDetectorPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
    * memory leak and other side effects.
    */
   override fun onDetachedFromActivityForConfigChanges() {
+    activity?.unbindService(connection)
     activity = null
+    binding?.let {
+      FlutterLifecycleAdapter.getActivityLifecycle(it).removeObserver(this)
+    }
+    binding = null
   }
 
   /**
@@ -153,7 +176,9 @@ class MagiskDetectorPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
    * binding or its resources.
    */
   override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) {
+    this.binding = binding
     activity = binding.activity
+    FlutterLifecycleAdapter.getActivityLifecycle(binding).addObserver(this)
   }
 
   /**
@@ -178,68 +203,25 @@ class MagiskDetectorPlugin: FlutterPlugin, MethodCallHandler, ActivityAware {
    * avoid a possible memory leak and other side effects.
    */
   override fun onDetachedFromActivity() {
+    activity?.unbindService(connection)
     activity = null
+    binding?.let {
+      FlutterLifecycleAdapter.getActivityLifecycle(it).removeObserver(this)
+    }
+    binding = null
   }
 
-//  private fun props(): Int? {
-//    val activity = this.activity ?: return null
-//    val sp: SharedPreferences
-//    try {
-//      val masterKey = MasterKey.Builder(activity)
-//        .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-//        .build()
-//      sp = EncryptedSharedPreferences.create(
-//        activity,
-//        activity.packageName,
-//        masterKey,
-//        EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-//        EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-//      )
-//    } catch (e: GeneralSecurityException) {
-//      Log.e(tag, "Unable to open SharedPreferences.", e)
-//      return -1
-//    } catch (e: IOException) {
-//      Log.e(tag, "Unable to open SharedPreferences.", e)
-//      return -1
-//    }
-//    val spFingerprint = sp.getString("fingerprint", "") ?: ""
-//    val fingerprint = Build.FINGERPRINT
-//    Log.i(
-//      tag,
-//      "spFingerprint=$spFingerprint \n  fingerprint=$fingerprint"
-//    )
-//    val spBootId = sp.getString("boot_id", "") ?: ""
-//    val bootId = getBootId()
-//    Log.i(tag, "spBootId=$spBootId \n  bootId=$bootId")
-//    val spPropsHash = sp.getString("props_hash", "") ?: ""
-//    return if (spFingerprint == fingerprint && spBootId.isNotEmpty() && spPropsHash.isNotEmpty()) {
-//      if (spBootId != bootId) {
-//        if (spPropsHash == Native.getPropsHash()) 0 else 1
-//      } else 2
-//    } else {
-//      val editor = sp.edit()
-//      editor.putString("fingerprint", fingerprint)
-//      editor.putString("boot_id", bootId)
-//      editor.putString("props_hash", Native.getPropsHash())
-//      editor.apply()
-//      2
-//    }
-//  }
-
-  private fun getBootId(): String {
-    var bootId = ""
-    try {
-      FileInputStream("/proc/sys/kernel/random/boot_id").use { `is` ->
-        val reader: Reader =
-          InputStreamReader(`is`, StandardCharsets.UTF_8)
-        bootId = BufferedReader(reader).readLine().trim { it <= ' ' }
+  /**
+   * Called when a state transition event happens.
+   *
+   * @param source The source of the event
+   * @param event The event
+   */
+  override fun onStateChanged(source: LifecycleOwner, event: Lifecycle.Event) {
+    if (event == Lifecycle.Event.ON_START) {
+      activity?.let {
+        onActivityObtained(it)
       }
-    } catch (e: IOException) {
-      Log.w(tag, "Can't read boot_id.", e)
     }
-    if (bootId.isEmpty()) {
-      bootId = ((System.currentTimeMillis() - SystemClock.elapsedRealtime()) / 10).toString()
-    }
-    return bootId
   }
 }

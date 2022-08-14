@@ -1,5 +1,7 @@
 library magisk_detector;
 
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:magisk_detector/src/platform.dart';
 
@@ -9,10 +11,6 @@ import 'src/models.dart';
 abstract class MagiskDetector extends AndroidOnlyRuntime {
 
   Future<bool> detectMagisk();
-
-  Future<bool> isRestartRequired();
-
-  bool enforceRestartRequirement = true;
 
   @protected
   @visibleForTesting
@@ -24,15 +22,9 @@ abstract class MagiskDetector extends AndroidOnlyRuntime {
 
   @protected
   @visibleForTesting
-  Future<bool> haveMagiskDSocket();
+  Future<bool> haveMagiskHide();
 
-  @protected
-  @visibleForTesting
-  Future<bool> isIoctlModified();
-
-  @protected
-  @visibleForTesting
-  Future<bool> propsCheck();
+  bool isAppHacked() => false;
 
   static late final MagiskDetector instance = MagiskDetectorPlatform();
 }

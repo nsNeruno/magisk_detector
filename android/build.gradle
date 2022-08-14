@@ -30,7 +30,7 @@ apply plugin: 'kotlin-android'
 
 android {
     compileSdkVersion 31
-    ndkVersion '21.3.6528147'
+    ndkVersion '25.0.8775105'
 
     buildTypes {
         release {
@@ -63,16 +63,11 @@ android {
     }
 
     defaultConfig {
-        minSdkVersion 23
+        minSdkVersion 24
         targetSdkVersion 31
     }
 }
 
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
-
-//    implementation 'androidx.security:security-crypto:1.1.0-alpha02'
-
-    implementation 'io.github.vvb2060.ndk:xposeddetector:1.0'
-    implementation 'io.github.vvb2060.ndk:boringssl:1.0'
 }

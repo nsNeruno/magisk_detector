@@ -1,9 +1,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     package="lab.neruno.magisk_detector.example.magisk_detector_example">
    <application
-        android:label="magisk_detector_example"
-        android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+       android:label="magisk_detector_example"
+       android:name="${applicationName}"
+       android:icon="@mipmap/ic_launcher"
+       android:extractNativeLibs="true"
+       android:zygotePreloadName="lab.neruno.magisk_detector.AppZygote"
+       tools:targetApi="q">
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -34,6 +38,7 @@
        <service
            android:name="lab.neruno.magisk_detector.RemoteService"
            android:isolatedProcess="true"
+           android:exported="false"
            android:useAppZygote="true" />
     </application>
 </manifest>

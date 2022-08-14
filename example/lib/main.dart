@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:magisk_detector/magisk_detector.dart';
 
 void main() {
-  MagiskDetector.instance.enforceRestartRequirement = false;
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(const MagiskDetectionDemoApp());
 }
 
