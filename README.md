@@ -2,6 +2,10 @@
 
 Flutter Support for integrating Magisk Detector for Android Application. Based from [MagiskDetector](https://github.com/vvb2060/MagiskDetector/).
 
+## Warning
+
+Currently Magisk has been updated further and the source I referenced to hardly has any updates, neither I have the time to research further for this project. Thank you for the understanding.
+
 ## Features
 
 This is a straight adaptation attempt at reproducing the logics from the original creator repository. Allows to perform a check on your Android device if it's currently using Magisk Root Bypassing module.
